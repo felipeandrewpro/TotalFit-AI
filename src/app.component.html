@@ -1,0 +1,120 @@
+<div class="min-h-screen bg-darker text-gray-100 font-sans selection:bg-primary selection:text-darker">
+  
+  <!-- Header -->
+  <header class="border-b border-gray-800 bg-dark/50 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2 cursor-pointer" (click)="currentUser() ? returnToDashboard() : null">
+        <div class="w-8 h-8 bg-gradient-to-tr from-primary to-blue-500 rounded-lg flex items-center justify-center font-bold text-darker transform rotate-3">
+          TF
+        </div>
+        <h1 class="text-xl font-bold tracking-tight">
+          TotalFit <span class="text-primary font-light">AI</span>
+        </h1>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        @if (appState() === 'result' || appState() === 'input' || appState() === 'loading') {
+           @if(currentUser()) {
+            <button (click)="returnToDashboard()" class="text-sm text-gray-400 hover:text-white transition">
+              Voltar ao Início
+            </button>
+           }
+        }
+        
+        @if (currentUser()) {
+          <button (click)="handleLogout()" class="text-sm text-red-400 hover:text-red-300 transition flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            Sair
+          </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    
+    <!-- State: Auth (Login/Register) -->
+    @if (appState() === 'auth') {
+      <app-auth (loginSuccess)="handleLoginSuccess($event)" />
+    }
+
+    <!-- State: Dashboard -->
+    @if (appState() === 'dashboard' && currentUser()) {
+      <app-dashboard 
+        [user]="currentUser()!" 
+        [plans]="savedPlans()" 
+        (create)="goToCreatePlan()"
+        (view)="handleViewSavedPlan($event)"
+        (delete)="handleDeletePlan($event)"
+        (update)="handleUpdatePlan($event)"
+        (evolve)="handleEvolution($event)"
+      />
+    }
+
+    <!-- State: Input Form -->
+    @if (appState() === 'input') {
+      <app-anamnesis-form (formSubmit)="handleFormSubmit($event)" />
+    }
+
+    <!-- State: Loading OR Result -->
+    @if (appState() === 'loading' || appState() === 'result') {
+      <app-plan-display 
+        [plan]="currentPlan()" 
+        [isLoading]="appState() === 'loading'"
+        [isSaved]="isCurrentPlanSaved()"
+        (save)="handleSavePlan()" 
+      />
+    }
+
+    <!-- State: Error -->
+    @if (appState() === 'error') {
+      <div class="max-w-md mx-auto text-center py-20">
+        <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Erro no processamento</h3>
+        <p class="text-gray-400 mb-6">{{ errorMessage() }}</p>
+        <div class="flex justify-center gap-4">
+          <button (click)="returnToDashboard()" class="text-gray-400 hover:text-white transition">
+            Voltar
+          </button>
+          <button (click)="goToCreatePlan()" class="bg-primary hover:bg-green-400 text-darker font-bold px-6 py-2 rounded-lg transition">
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    }
+
+  </main>
+
+  <!-- Hydration Notification Toast -->
+  @if (showWaterReminder()) {
+    <div class="fixed bottom-6 left-6 z-50 animate-fade-in-up">
+      <div class="bg-blue-900/40 backdrop-blur-md border border-blue-500/30 rounded-2xl p-4 flex items-center gap-4 shadow-xl max-w-sm">
+        <div class="bg-blue-500/20 p-3 rounded-full">
+          <span class="text-2xl animate-bounce block">💧</span>
+        </div>
+        <div class="flex-grow">
+          <h4 class="font-bold text-white text-sm">Hora de hidratar!</h4>
+          <p class="text-xs text-blue-200 mt-1">
+            Sua meta é de <span class="font-bold text-white">{{ currentPlan()?.profile?.hydration }} Litros</span> por dia.
+            Beba um copo agora.
+          </p>
+        </div>
+        <button (click)="dismissReminder()" class="text-gray-400 hover:text-white p-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Coach Bot (Pass currentPlan for context) -->
+  <app-chat-bot [currentPlan]="currentPlan()" />
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-800 mt-auto py-8 text-center text-gray-500 text-sm">
+    <p>TotalFit AI © 2024. Consulte sempre um médico antes de iniciar atividades físicas.</p>
+  </footer>
+
+</div>
